@@ -1,10 +1,9 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
-from app.models import MealLog, MoodLog
+from app.models import MealLog
 from datetime import datetime, timedelta
 from scipy.stats import pearsonr
-
 
 analytics_bp = Blueprint('analytics', __name__)
 
@@ -30,59 +29,50 @@ def get_date_range():
 @analytics_bp.route('/correlation', methods=['GET'])
 @jwt_required()
 def get_correlation():
-    """Корреляция калорий и настроения по методу Пирсона"""
     user_id = int(get_jwt_identity())
     date_from, date_to = get_date_range()
 
-    meals = MealLog.query.filter(
+    meals_with_mood = MealLog.query.filter(
         MealLog.user_id == user_id,
         MealLog.meal_time >= date_from,
-        MealLog.meal_time <= date_to
+        MealLog.meal_time <= date_to,
+        MealLog.mood_score.isnot(None)
     ).order_by(MealLog.meal_time).all()
 
-    moods = MoodLog.query.filter(
-        MoodLog.user_id == user_id,
-        MoodLog.logged_at >= date_from,
-        MoodLog.logged_at <= date_to
-    ).order_by(MoodLog.logged_at).all()
-
-    if len(meals) < MIN_RECORDS_FOR_ANALYSIS or len(moods) < MIN_RECORDS_FOR_ANALYSIS:
+    if len(meals_with_mood) < MIN_RECORDS_FOR_ANALYSIS:
+        total_meals = MealLog.query.filter(
+            MealLog.user_id == user_id,
+            MealLog.meal_time >= date_from,
+            MealLog.meal_time <= date_to,
+        ).count()
         return jsonify({
             'enough_data': False,
             'min_records': MIN_RECORDS_FOR_ANALYSIS,
-            'meals_count': len(meals),
-            'moods_count': len(moods),
+            'meals_with_mood_count': len(meals_with_mood),
+            'total_meals_count': total_meals,
             'recommendations': GENERAL_RECOMMENDATIONS
         })
 
-    # Агрегируем по дням
-    meals_by_day = {}
-    for m in meals:
+    days = {}
+    for m in meals_with_mood:
         day = m.meal_time.date().isoformat()
-        if day not in meals_by_day:
-            meals_by_day[day] = 0
-        meals_by_day[day] += m.calories
+        if day not in days:
+            days[day] = {'calories': [], 'moods': []}
+        days[day]['calories'].append(m.calories)
+        days[day]['moods'].append(m.mood_score)
 
-    moods_by_day = {}
-    for m in moods:
-        day = m.logged_at.date().isoformat()
-        if day not in moods_by_day:
-            moods_by_day[day] = []
-        moods_by_day[day].append(m.mood_score)
-    moods_by_day = {d: sum(v) / len(v) for d, v in moods_by_day.items()}
+    sorted_days = sorted(days.keys())
+    calories_list = [sum(days[d]['calories']) for d in sorted_days]
+    mood_list = [sum(days[d]['moods']) / len(days[d]['moods']) for d in sorted_days]
 
-    common_days = sorted(set(meals_by_day.keys()) & set(moods_by_day.keys()))
-
-    if len(common_days) < MIN_RECORDS_FOR_ANALYSIS:
+    if len(sorted_days) < MIN_RECORDS_FOR_ANALYSIS:
         return jsonify({
             'enough_data': False,
             'min_records': MIN_RECORDS_FOR_ANALYSIS,
-            'common_days': len(common_days),
+            'meals_with_mood_count': len(meals_with_mood),
+            'common_days': len(sorted_days),
             'recommendations': GENERAL_RECOMMENDATIONS
         })
-
-    calories_list = [meals_by_day[d] for d in common_days]
-    mood_list = [moods_by_day[d] for d in common_days]
 
     try:
         corr, p_value = pearsonr(calories_list, mood_list)
@@ -91,9 +81,8 @@ def get_correlation():
     except Exception:
         corr, p_value = 0.0, 1.0
 
-    # Интерпретация
     if corr > 0.5:
-        interpretation = 'Сильная положительная связь: больше калорий — лучше настроение'
+        interpretation = 'Сильная положительная связь: в дни с большим количеством калорий настроение лучше'
     elif corr > 0.2:
         interpretation = 'Умеренная положительная связь между питанием и настроением'
     elif corr < -0.5:
@@ -109,10 +98,10 @@ def get_correlation():
         'p_value': p_value,
         'significant': p_value < 0.05,
         'interpretation': interpretation,
-        'data_points': len(common_days),
+        'data_points': len(sorted_days),
         'chart_data': [
-            {'date': d, 'calories': meals_by_day[d], 'mood': moods_by_day[d]}
-            for d in common_days
+            {'date': d, 'calories': round(calories_list[i], 1), 'mood': round(mood_list[i], 2)}
+            for i, d in enumerate(sorted_days)
         ],
         'recommendations': _generate_recommendations(corr, calories_list, mood_list)
     })
@@ -121,7 +110,6 @@ def get_correlation():
 @analytics_bp.route('/summary', methods=['GET'])
 @jwt_required()
 def get_summary():
-    """Сводная статистика за период"""
     user_id = int(get_jwt_identity())
     date_from, date_to = get_date_range()
 
@@ -131,48 +119,37 @@ def get_summary():
         MealLog.meal_time <= date_to
     ).all()
 
-    moods = MoodLog.query.filter(
-        MoodLog.user_id == user_id,
-        MoodLog.logged_at >= date_from,
-        MoodLog.logged_at <= date_to
-    ).all()
+    meals_with_mood = [m for m in meals if m.mood_score is not None]
+    mood_scores = [m.mood_score for m in meals_with_mood]
 
     avg_calories = sum(m.calories for m in meals) / len(meals) if meals else 0
-    avg_mood = sum(m.mood_score for m in moods) / len(moods) if moods else 0
     total_calories = sum(m.calories for m in meals)
+    avg_mood = sum(mood_scores) / len(mood_scores) if mood_scores else 0
 
-    # Распределение по типам питания
     meal_type_counts = {}
     for m in meals:
         meal_type_counts[m.meal_type] = meal_type_counts.get(m.meal_type, 0) + 1
 
-    # График настроения по дням
-    mood_timeline = {}
-    for m in moods:
-        day = m.logged_at.date().isoformat()
-        if day not in mood_timeline:
-            mood_timeline[day] = []
-        mood_timeline[day].append(m.mood_score)
+    mood_by_day = {}
+    for m in meals_with_mood:
+        day = m.meal_time.date().isoformat()
+        mood_by_day.setdefault(day, []).append(m.mood_score)
     mood_timeline = [
         {'date': d, 'avg_mood': round(sum(v) / len(v), 1)}
-        for d, v in sorted(mood_timeline.items())
+        for d, v in sorted(mood_by_day.items())
     ]
 
-    # График калорий по дням
-    calories_timeline = {}
+    cal_by_day = {}
     for m in meals:
         day = m.meal_time.date().isoformat()
-        calories_timeline[day] = calories_timeline.get(day, 0) + m.calories
+        cal_by_day[day] = cal_by_day.get(day, 0) + m.calories
     calories_timeline = [
         {'date': d, 'calories': round(v, 1)}
-        for d, v in sorted(calories_timeline.items())
+        for d, v in sorted(cal_by_day.items())
     ]
 
     return jsonify({
-        'period': {
-            'from': date_from.isoformat(),
-            'to': date_to.isoformat()
-        },
+        'period': {'from': date_from.isoformat(), 'to': date_to.isoformat()},
         'meals': {
             'count': len(meals),
             'total_calories': round(total_calories, 1),
@@ -180,10 +157,10 @@ def get_summary():
             'by_type': meal_type_counts
         },
         'moods': {
-            'count': len(moods),
+            'count': len(meals_with_mood),
             'average': round(avg_mood, 1),
-            'min': min((m.mood_score for m in moods), default=0),
-            'max': max((m.mood_score for m in moods), default=0)
+            'min': min(mood_scores, default=0),
+            'max': max(mood_scores, default=0)
         },
         'mood_timeline': mood_timeline,
         'calories_timeline': calories_timeline
@@ -194,21 +171,14 @@ def _generate_recommendations(corr, calories, moods):
     recs = []
     avg_cal = sum(calories) / len(calories) if calories else 0
     avg_mood = sum(moods) / len(moods) if moods else 5
-
     if avg_cal > 2500:
         recs.append('Вы потребляете много калорий. Попробуйте уменьшить порции.')
     elif avg_cal < 1200:
         recs.append('Вы потребляете мало калорий. Убедитесь, что питаетесь достаточно.')
-
     if avg_mood < 5:
-        recs.append('Ваше среднее настроение ниже нормы. Обратите внимание на режим питания и отдыха.')
-
+        recs.append('Среднее настроение ниже нормы. Обратите внимание на режим питания.')
     if corr < -0.3:
-        recs.append('Данные показывают: в дни с большим количеством еды ваше настроение хуже. Попробуйте есть меньше, но чаще.')
+        recs.append('В дни с большим количеством еды настроение хуже. Попробуйте есть меньше, но чаще.')
     elif corr > 0.3:
-        recs.append('Вы чувствуете себя лучше в дни с хорошим питанием. Продолжайте в том же духе!')
-
-    if not recs:
-        recs = GENERAL_RECOMMENDATIONS[:3]
-
-    return recs
+        recs.append('Вы чувствуете себя лучше в дни с хорошим питанием. Продолжайте!')
+    return recs if recs else GENERAL_RECOMMENDATIONS[:3]

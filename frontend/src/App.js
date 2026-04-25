@@ -6,7 +6,6 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import MealsPage from './pages/MealsPage';
-import MoodsPage from './pages/MoodsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import FeedPage from './pages/FeedPage';
 import PlacesPage from './pages/PlacesPage';
@@ -37,7 +36,6 @@ function AppRoutes() {
       <Route path="/register" element={user ? <Navigate to="/" /> : <RegisterPage />} />
       <Route path="/" element={<PrivateRoute><AppLayout><DashboardPage /></AppLayout></PrivateRoute>} />
       <Route path="/meals" element={<PrivateRoute><AppLayout><MealsPage /></AppLayout></PrivateRoute>} />
-      <Route path="/moods" element={<PrivateRoute><AppLayout><MoodsPage /></AppLayout></PrivateRoute>} />
       <Route path="/analytics" element={<PrivateRoute><AppLayout><AnalyticsPage /></AppLayout></PrivateRoute>} />
       <Route path="/feed" element={<PrivateRoute><AppLayout><FeedPage /></AppLayout></PrivateRoute>} />
       <Route path="/places" element={<PrivateRoute><AppLayout><PlacesPage /></AppLayout></PrivateRoute>} />

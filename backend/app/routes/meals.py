@@ -76,6 +76,7 @@ def create_meal():
         proteins=float(data.get('proteins', 0)),
         fats=float(data.get('fats', 0)),
         carbs=float(data.get('carbs', 0)),
+        mood_score=int(data['mood_score']) if data.get('mood_score') and 1 <= int(data['mood_score']) <= 10 else None,
         meal_time=meal_time,
         meal_type=data.get('meal_type', 'обед'),
         notes=data.get('notes', ''),
@@ -125,6 +126,9 @@ def update_meal(meal_id):
         meal.is_public = bool(data['is_public'])
     if 'meal_time' in data:
         meal.meal_time = datetime.fromisoformat(data['meal_time'])
+    if 'mood_score' in data:
+        ms = data['mood_score']
+        meal.mood_score = int(ms) if ms is not None and 1 <= int(ms) <= 10 else None
 
     db.session.commit()
     return jsonify(meal.to_dict(user_id))

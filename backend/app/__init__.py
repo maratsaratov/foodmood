@@ -22,7 +22,7 @@ def create_app():
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key')
     app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'dev-jwt-secret')
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
-        'DATABASE_URL', 'postgresql://postgres:password@localhost:5432/edanastroenie'
+        'DATABASE_URL', 'postgresql://postgres:ypursecurepassword@localhost:5432/edanastroenie'
     )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = 86400  # 24 hours
@@ -45,7 +45,6 @@ def create_app():
     # Register blueprints
     from app.routes.auth import auth_bp
     from app.routes.meals import meals_bp
-    from app.routes.moods import moods_bp
     from app.routes.reviews import reviews_bp
     from app.routes.places import places_bp
     from app.routes.analytics import analytics_bp
@@ -55,7 +54,6 @@ def create_app():
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(meals_bp, url_prefix='/api/meals')
-    app.register_blueprint(moods_bp, url_prefix='/api/moods')
     app.register_blueprint(reviews_bp, url_prefix='/api/reviews')
     app.register_blueprint(places_bp, url_prefix='/api/places')
     app.register_blueprint(analytics_bp, url_prefix='/api/analytics')

@@ -55,6 +55,7 @@ class MealLog(db.Model):
     proteins = db.Column(db.Float, default=0)
     fats = db.Column(db.Float, default=0)
     carbs = db.Column(db.Float, default=0)
+    mood_score = db.Column(db.Integer, nullable=True)  # 1-10, настроение во время/после еды
     meal_time = db.Column(db.DateTime, default=datetime.utcnow)
     meal_type = db.Column(db.String(50), default='обед')  # завтрак, обед, ужин, перекус
     notes = db.Column(db.Text, default='')
@@ -79,6 +80,7 @@ class MealLog(db.Model):
             'proteins': self.proteins,
             'fats': self.fats,
             'carbs': self.carbs,
+            'mood_score': self.mood_score,
             'meal_time': self.meal_time.isoformat(),
             'meal_type': self.meal_type,
             'notes': self.notes,

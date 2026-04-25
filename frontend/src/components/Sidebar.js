@@ -6,7 +6,6 @@ import toast from 'react-hot-toast';
 const NAV = [
   { to: '/', icon: '🏠', label: 'Главная', exact: true },
   { to: '/meals', icon: '🍽️', label: 'Питание' },
-  { to: '/moods', icon: '💭', label: 'Настроение' },
   { to: '/analytics', icon: '📊', label: 'Аналитика' },
   { to: '/feed', icon: '📰', label: 'Лента' },
   { to: '/places', icon: '📍', label: 'Заведения' },
