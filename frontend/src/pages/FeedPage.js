@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../api/client';
-import { formatDate, mealTypeLabel, getInitials, getApiError } from '../utils/helpers';
+import { formatDate, mealTypeLabel, getInitials, getApiError, moodEmoji, moodLabel } from '../utils/helpers';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 
@@ -109,6 +109,26 @@ function FeedCard({ meal, currentUser, onLikeToggle }) {
         {meal.fats > 0 && <span>Ж: {meal.fats}г</span>}
         {meal.carbs > 0 && <span>У: {meal.carbs}г</span>}
       </div>
+
+      {/* Настроение автора в момент приёма пищи */}
+      {meal.mood_score != null && (
+        <div style={{
+          marginTop: 10,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 8,
+          background: 'var(--color-primary-light)',
+          borderRadius: 'var(--radius-sm)',
+          padding: '5px 12px',
+          fontSize: '0.9rem',
+        }}>
+          <span style={{ fontSize: '1.2rem' }}>{moodEmoji(meal.mood_score)}</span>
+          <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>
+            {moodLabel(meal.mood_score)} · {meal.mood_score}/10
+          </span>
+        </div>
+      )}
+
       {meal.notes && <p style={{ marginTop: 8, fontSize: '0.92rem' }}>{meal.notes}</p>}
 
       <div className="feed-actions">
