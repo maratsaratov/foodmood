@@ -9,7 +9,7 @@ services:
     environment:
       POSTGRES_DB: edanastroenie
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: your-secure-password
+      POSTGRES_PASSWORD: password
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -31,13 +31,14 @@ services:
       FLASK_ENV: ${FLASK_ENV:-production}
       SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-jwt-in-production}
-      DATABASE_URL: postgresql://postgres:yoursecurepassword@db:5432/edanastroenie
+      DATABASE_URL: postgresql://postgres:password@db:5432/edanastroenie
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
       MAIL_SERVER: ${MAIL_SERVER:-smtp.gmail.com}
       MAIL_PORT: ${MAIL_PORT:-587}
       MAIL_USE_TLS: ${MAIL_USE_TLS:-True}
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      GIGACHAT_CREDENTIALS: ${GIGACHAT_CREDENTIALS:-}
     depends_on:
       db:
         condition: service_healthy
