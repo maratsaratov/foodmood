@@ -98,3 +98,38 @@ def change_password():
     user.set_password(new_password)
     db.session.commit()
     return jsonify({'message': 'Пароль успешно изменён'})
+
+
+@auth_bp.route('/users/<username>', methods=['GET'])
+@jwt_required()
+def get_user_profile(username):
+    """Публичный профиль пользователя по username."""
+    user = User.query.filter_by(username=username).first_or_404()
+    return jsonify({
+        'id': user.id,
+        'username': user.username,
+        'bio': user.bio,
+        'avatar_url': user.avatar_url,
+        'created_at': user.created_at.isoformat(),
+    })
+
+
+@auth_bp.route('/users/<username>/meals', methods=['GET'])
+@jwt_required()
+def get_user_public_meals(username):
+    """Публичные записи питания пользователя."""
+    from app.models import MealLog
+    user = User.query.filter_by(username=username).first_or_404()
+    current_user_id = int(get_jwt_identity())
+
+    page = request.args.get('page', 1, type=int)
+    meals = MealLog.query.filter_by(user_id=user.id, is_public=True)\
+        .order_by(MealLog.meal_time.desc())\
+        .paginate(page=page, per_page=20)
+
+    return jsonify({
+        'items': [m.to_dict(current_user_id) for m in meals.items],
+        'total': meals.total,
+        'pages': meals.pages,
+        'page': page,
+    })

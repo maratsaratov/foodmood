@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../api/client';
 import { formatDate, mealTypeLabel, getInitials, getApiError, moodEmoji, moodLabel } from '../utils/helpers';
 import { useAuth } from '../hooks/useAuth';
@@ -94,11 +95,16 @@ function FeedCard({ meal, currentUser, onLikeToggle }) {
   return (
     <div className="feed-card">
       <div className="feed-meta">
-        <div className="avatar">{getInitials(meal.username)}</div>
-        <div>
-          <div style={{ fontWeight: 600 }}>{meal.username}</div>
-          <div style={{ fontSize: '0.8rem' }}>{formatDate(meal.meal_time)}</div>
-        </div>
+        <Link
+          to={`/users/${meal.username}`}
+          style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'inherit' }}
+        >
+          <div className="avatar" style={{ cursor: 'pointer' }}>{getInitials(meal.username)}</div>
+          <div>
+            <div style={{ fontWeight: 600, color: 'var(--color-primary)' }}>{meal.username}</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{formatDate(meal.meal_time)}</div>
+          </div>
+        </Link>
         <span className="tag" style={{ marginLeft: 'auto' }}>{mealTypeLabel(meal.meal_type)}</span>
       </div>
 

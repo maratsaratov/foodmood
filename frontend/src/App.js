@@ -12,6 +12,7 @@ import PlacesPage from './pages/PlacesPage';
 import NotificationsPage from './pages/NotificationsPage';
 import SearchPage from './pages/SearchPage';
 import ProfilePage from './pages/ProfilePage';
+import UserProfilePage from './pages/UserProfilePage';
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
@@ -42,6 +43,7 @@ function AppRoutes() {
       <Route path="/notifications" element={<PrivateRoute><AppLayout><NotificationsPage /></AppLayout></PrivateRoute>} />
       <Route path="/search" element={<PrivateRoute><AppLayout><SearchPage /></AppLayout></PrivateRoute>} />
       <Route path="/profile" element={<PrivateRoute><AppLayout><ProfilePage /></AppLayout></PrivateRoute>} />
+      <Route path="/users/:username" element={<PrivateRoute><AppLayout><UserProfilePage /></AppLayout></PrivateRoute>} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
