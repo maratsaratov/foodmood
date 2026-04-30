@@ -134,7 +134,7 @@ export default function UserProfilePage() {
             fontSize: '1.8rem', fontWeight: 800, color: 'var(--color-primary)',
           }}>
             {profile.avatar_url
-              ? <img src={profile.avatar_url} alt={profile.username}
+              ? <img src={`/static/${profile.avatar_url}`} alt={profile.username}
                   style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
               : initials
             }

@@ -14,9 +14,14 @@ migrate = Migrate()
 jwt = JWTManager()
 mail = Mail()
 
+# Upload configuration
+UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), '..', 'uploads')
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+
 
 def create_app():
-    app = Flask(__name__)
+    app = Flask(__name__, static_url_path='/static', static_folder='../uploads')
 
     # Config
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key')
@@ -26,6 +31,8 @@ def create_app():
     )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = 86400  # 24 hours
+    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+    app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 
     # Mail config
     app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')

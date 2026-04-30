@@ -1,10 +1,30 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from app import db
 from app.models import User
+import os
+from werkzeug.utils import secure_filename
+from PIL import Image
+import uuid
 
 auth_bp = Blueprint('auth', __name__)
 
+
+def allowed_file(filename):
+    """Проверка разрешённого расширения файла."""
+    from app import ALLOWED_EXTENSIONS
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def optimize_image(filepath):
+    """Оптимизация размера изображения."""
+    try:
+        img = Image.open(filepath)
+        # Изменение размера до максимум 400x400
+        img.thumbnail((400, 400), Image.Resampling.LANCZOS)
+        img.save(filepath, quality=85, optimize=True)
+    except Exception as e:
+        print(f"Image optimization error: {e}")
 
 
 @auth_bp.route('/register', methods=['POST'])
@@ -133,3 +153,54 @@ def get_user_public_meals(username):
         'pages': meals.pages,
         'page': page,
     })
+
+
+@auth_bp.route('/me/avatar', methods=['POST'])
+@jwt_required()
+def upload_avatar():
+    """Загрузка аватарки пользователя."""
+    user_id = int(get_jwt_identity())
+    user = User.query.get_or_404(user_id)
+
+    # Проверка файла
+    if 'file' not in request.files:
+        return jsonify({'error': 'Файл не выбран'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'Файл не выбран'}), 400
+
+    if not allowed_file(file.filename):
+        return jsonify({'error': 'Недопустимый формат файла. Используйте: PNG, JPG, JPEG, GIF, WebP'}), 400
+
+    # Создание папки uploads если её нет
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    os.makedirs(upload_folder, exist_ok=True)
+
+    # Генерация уникального имена файла
+    ext = secure_filename(file.filename).rsplit('.', 1)[1].lower()
+    filename = f"avatar_{user_id}_{uuid.uuid4().hex}.{ext}"
+    filepath = os.path.join(upload_folder, filename)
+
+    # Сохранение файла
+    try:
+        file.save(filepath)
+        optimize_image(filepath)
+        
+        # Удаление старой аватарки если она была
+        if user.avatar_url and user.avatar_url.startswith('avatar_'):
+            old_path = os.path.join(upload_folder, user.avatar_url)
+            if os.path.exists(old_path):
+                os.remove(old_path)
+        
+        # Обновление пользователя
+        user.avatar_url = filename
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Аватарка загружена успешно',
+            'avatar_url': filename,
+            'user': user.to_dict()
+        }), 200
+    except Exception as e:
+        return jsonify({'error': f'Ошибка при загрузке файла: {str(e)}'}), 500

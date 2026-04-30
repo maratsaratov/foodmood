@@ -14,6 +14,7 @@ export default function ProfilePage() {
   });
   const [pwForm, setPwForm] = useState({ old_password: '', new_password: '', confirm: '' });
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const setP = (k) => (e) => setProfileForm(f => ({
     ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value,
@@ -31,6 +32,33 @@ export default function ProfilePage() {
       toast.error(getApiError(err));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const uploadAvatar = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Проверка размера
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Файл слишком большой (максимум 5MB)');
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const { data } = await api.post('/auth/me/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      updateUser(data.user);
+      toast.success('Аватарка обновлена');
+      e.target.value = ''; // Reset input
+    } catch (err) {
+      toast.error(getApiError(err));
+    } finally {
+      setUploadingAvatar(false);
     }
   };
 
@@ -68,18 +96,73 @@ export default function ProfilePage() {
 
       {/* Avatar block */}
       <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 24 }}>
-        <div style={{
-          width: 72, height: 72, borderRadius: '50%',
-          background: 'var(--color-primary-light)',
-          border: '3px solid var(--color-primary)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '1.6rem', fontWeight: 800, color: 'var(--color-primary)',
-          flexShrink: 0,
-        }}>{initials}</div>
+        <div style={{ position: 'relative' }}>
+          {user?.avatar_url ? (
+            <img
+              src={`/static/${user.avatar_url}`}
+              alt="Avatar"
+              style={{
+                width: 72, height: 72, borderRadius: '50%',
+                border: '3px solid var(--color-primary)',
+                objectFit: 'cover',
+                cursor: 'pointer',
+                transition: 'opacity 0.2s'
+              }}
+              onClick={() => document.getElementById('avatarInput').click()}
+              title="Нажмите для изменения аватарки"
+            />
+          ) : (
+            <div
+              style={{
+                width: 72, height: 72, borderRadius: '50%',
+                background: 'var(--color-primary-light)',
+                border: '3px solid var(--color-primary)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '1.6rem', fontWeight: 800, color: 'var(--color-primary)',
+                cursor: 'pointer',
+                transition: 'opacity 0.2s'
+              }}
+              onClick={() => document.getElementById('avatarInput').click()}
+              title="Нажмите для добавления аватарки"
+            >
+              {initials}
+            </div>
+          )}
+          <input
+            id="avatarInput"
+            type="file"
+            accept="image/png,image/jpeg,image/gif,image/webp"
+            onChange={uploadAvatar}
+            disabled={uploadingAvatar}
+            style={{ display: 'none' }}
+          />
+          {uploadingAvatar && (
+            <div style={{
+              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+              borderRadius: '50%', background: 'rgba(0,0,0,0.5)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'white', fontSize: '0.75rem'
+            }}>
+              Загрузка...
+            </div>
+          )}
+        </div>
         <div>
           <div style={{ fontSize: '1.2rem', fontWeight: 700 }}>{user?.username}</div>
           <div style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{user?.email}</div>
           {user?.bio && <div style={{ marginTop: 4, fontSize: '0.92rem' }}>{user?.bio}</div>}
+          <button
+            type="button"
+            onClick={() => document.getElementById('avatarInput').click()}
+            disabled={uploadingAvatar}
+            style={{
+              marginTop: 8, padding: '4px 12px', fontSize: '0.85rem',
+              background: 'var(--color-primary)', color: 'white', border: 'none',
+              borderRadius: '4px', cursor: 'pointer', opacity: uploadingAvatar ? 0.6 : 1
+            }}
+          >
+            {uploadingAvatar ? 'Загрузка...' : 'Изменить аватарку'}
+          </button>
         </div>
       </div>
 

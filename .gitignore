@@ -21,6 +21,7 @@ npm-debug.log*
 
 # Docker volumes
 postgres_data/
+backend/uploads/
 
 # IDE
 .vscode/
