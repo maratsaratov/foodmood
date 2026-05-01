@@ -1,0 +1,18 @@
+--index-url https://pypi.org/simple/
+--extra-index-url https://mirror.yandex.ru/pypi/simple/
+--extra-index-url https://pypi.ngc.nvidia.com/
+
+Flask==3.1.0
+Flask-SQLAlchemy==3.1.1
+Flask-Migrate==4.0.7
+Flask-JWT-Extended==4.7.1
+Flask-Cors==5.0.0
+Flask-Mail==0.10.0
+psycopg2-binary==2.9.10
+python-dotenv==1.0.1
+bcrypt==4.2.1
+scipy==1.14.1
+numpy==2.0.2
+marshmallow==3.23.1
+gunicorn==23.0.0
+gigachat==0.1.39
