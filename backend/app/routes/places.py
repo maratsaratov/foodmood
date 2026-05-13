@@ -25,6 +25,7 @@ def get_places():
 @places_bp.route('/<int:place_id>', methods=['GET'])
 @jwt_required()
 def get_place(place_id):
+    """Получить одно заведение — используется для обновления среднего рейтинга после отзыва."""
     place = Place.query.get_or_404(place_id)
     return jsonify(place.to_dict())
 
@@ -38,7 +39,6 @@ def create_place():
     if not name:
         return jsonify({'error': 'Название заведения обязательно'}), 400
 
-    # Проверка уникальности
     if Place.query.filter_by(name=name).first():
         return jsonify({'error': 'Заведение с таким названием уже существует'}), 409
 
